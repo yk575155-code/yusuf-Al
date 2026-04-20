@@ -1,0 +1,234 @@
+/* Reset & Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(to right, #e0e7ff, #ffffff);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 15px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Dark Mode */
+body.dark {
+  background: linear-gradient(to right, #0f172a, #1e293b);
+  color: #f8fafc;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  align-self: flex-end;
+  margin-bottom: 15px;
+}
+.theme-toggle button {
+  background: #6366f1;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+  transition: background 0.3s ease;
+}
+.theme-toggle button:hover {
+  background: #4f46e5;
+}
+
+/* Main Container */
+.main {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  border-radius: 24px;
+  padding: 40px 30px;
+  width: 100%;
+  max-width: 650px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark mode for main container */
+body.dark .main {
+  background: rgba(30, 41, 59, 0.6);
+}
+
+/* Title */
+.title {
+  text-align: center;
+  font-size: 2.2rem;
+  margin-bottom: 30px;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+.title img {
+  width: 50px;
+  height: 50px;
+}
+
+/* Chat Box */
+.chatbox {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* Form */
+.form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Input */
+.input {
+  flex-grow: 1;
+  padding: 14px 18px;
+  font-size: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background-color: #f8fafc;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+body.dark .input {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+/* Button */
+#btn {
+  padding: 14px 22px;
+  background: linear-gradient(135deg, #6366f1, #4338ca);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+#btn:hover {
+  background: linear-gradient(135deg, #4f46e5, #3730a3);
+}
+body.dark #btn {
+  background: linear-gradient(135deg, #818cf8, #6366f1);
+}
+
+/* Chat Display */
+.Ai-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+  border-radius: 16px;
+  background-color: #f1f5f9;
+}
+body.dark .Ai-chat {
+  background-color: #0f172a;
+}
+
+/* Chat Bubbles */
+.bubble {
+  max-width: 85%;
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-size: 15.5px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  transition: 0.3s ease;
+}
+.user {
+  align-self: flex-end;
+  background-color: #6366f1;
+  color: white;
+  border-bottom-right-radius: 0;
+}
+.bot {
+  align-self: flex-start;
+  background-color: #e0e7ff;
+  color: #1e293b;
+  border-bottom-left-radius: 0;
+}
+body.dark .bot {
+  background-color: #334155;
+  color: #f8fafc;
+}
+
+/* Typing Animation */
+.typing {
+  display: inline-block;
+  animation: typing 1.2s steps(20) 1;
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: 2px solid #4f46e5;
+}
+
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Responsive Mobile Design */
+@media (max-width: 768px) {
+  .main {
+    padding: 30px 20px;
+    border-radius: 20px;
+  }
+
+  .title {
+    font-size: 1.8rem;
+  }
+
+  .form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .input,
+  #btn {
+    width: 100%;
+  }
+
+  #btn {
+    margin-top: 10px;
+  }
+
+  .bubble {
+    font-size: 14.5px;
+    max-width: 90%;
+  }
+
+  .theme-toggle {
+    align-self: center;
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .bubble {
+    font-size: 13.5px;
+  }
+}

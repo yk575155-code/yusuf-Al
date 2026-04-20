@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Bot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='Ai.css') }}" />
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="history-panel">
+      <div class="panel-header">
+        <h2>Recent Chat</h2>
+        <button class="theme-btn" onclick="toggleTheme()" type="button">Theme</button>
+      </div>
+
+      {% if ai_response %}
+      <div class="history-item">
+        <p class="history-label">You</p>
+        <p>{{ user_message }}</p>
+      </div>
+      <div class="history-item">
+        <p class="history-label">AI Bot</p>
+        <p>{{ ai_response }}</p>
+      </div>
+      {% else %}
+      <p class="empty-history">No chats yet. Send a message to start.</p>
+      {% endif %}
+    </aside>
+
+    <main class="main chat-shell">
+      <div class="chat-topbar">
+        <h1 class="title">AI Chatbot</h1>
+        <p class="subtitle">Always ready to help</p>
+      </div>
+
+      <div class="chat-messages">
+        {% if ai_response %}
+        <div class="ai-chat">
+          <div class="bubble user"><strong>You:</strong> {{ user_message }}</div>
+          <div class="bubble bot"><strong>AI Bot:</strong> <span class="typing">{{ ai_response }}</span></div>
+        </div>
+        {% else %}
+        <div class="welcome-card">
+          <p>Ask anything and start your chat.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="composer-wrap">
+        <form method="post" action="{{ url_for('Ai') }}" class="form">
+          <input type="text" class="input" name="message" placeholder="Type your message..." required />
+          <button id="btn" type="submit">Send</button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function applySavedTheme() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark') {
+        document.body.classList.add('dark');
+      }
+    }
+    function toggleTheme() {
+      const isDark = document.body.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+    document.addEventListener('DOMContentLoaded', applySavedTheme);
+  </script>
+</body>
+
+</html>
