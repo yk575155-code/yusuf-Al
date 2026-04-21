@@ -1,28 +1,12 @@
 import os
 import requests
 from flask import Flask, render_template, request
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 
-
-def load_local_env():
-    env_path = os.path.join(os.path.dirname(__file__), ".env")
-    if not os.path.exists(env_path):
-        return
-
-    with open(env_path, "r", encoding="utf-8") as env_file:
-        for raw_line in env_file:
-            line = raw_line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip().strip('"').strip("'")
-            if key and key not in os.environ:
-                os.environ[key] = value
-
-
-load_local_env()
+# Load environment variables from .env file
+load_dotenv()
 
 
 @app.route('/')
@@ -64,7 +48,7 @@ def call_groq(headers, data):
 def get_ai_response(user_message):
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
-        return get_offline_response(user_message)
+        return "Error: GROQ_API_KEY is missing. Please check your .env file."
 
     headers = {
         "Content-Type": "application/json",
@@ -80,17 +64,24 @@ def get_ai_response(user_message):
 
     try:
         response = call_groq(headers, data)
-    except requests.exceptions.RequestException:
-        return get_offline_response(user_message)
+    except requests.exceptions.RequestException as e:
+        return f"Network Error: {str(e)}"
 
     if response.status_code == 200:
         try:
             return response.json()["choices"][0]["message"]["content"]
         except (ValueError, KeyError, IndexError, TypeError):
-            return get_offline_response(user_message)
-
-    return get_offline_response(user_message)
+            return "Error: Received an invalid response from the AI service."
+    
+    # Handle specific status codes
+    if response.status_code == 401:
+        return "Error: Invalid API Key. Please check your GROQ_API_KEY."
+    elif response.status_code == 429:
+        return "Error: Rate limit exceeded. Please try again later."
+    
+    return f"Error: API returned status code {response.status_code}"
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
