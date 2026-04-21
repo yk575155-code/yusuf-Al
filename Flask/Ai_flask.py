@@ -22,29 +22,6 @@ def Ai():
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
-def get_offline_response(user_message):
-    text = (user_message or "").strip().lower()
-    if not text:
-        return "Please type a message and I will help you."
-    if text in {"hi", "hii", "hello", "hey"}:
-        return "Hi! I am ready to help. Ask me anything."
-    return (
-        "I am running in offline mode right now.\n"
-        f"You said: {user_message}"
-    )
-
-
-def call_groq(headers, data):
-    # Attempt 1: use current system proxy/network settings.
-    try:
-        return requests.post(API_URL, headers=headers, json=data, timeout=20)
-    except requests.exceptions.ProxyError:
-        # Attempt 2: bypass environment proxy settings.
-        with requests.Session() as session:
-            session.trust_env = False
-            return session.post(API_URL, headers=headers, json=data, timeout=20)
-
-
 def get_ai_response(user_message):
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
@@ -63,7 +40,14 @@ def get_ai_response(user_message):
     }
 
     try:
-        response = call_groq(headers, data)
+        # Attempt 1: use current system proxy/network settings.
+        try:
+            response = requests.post(API_URL, headers=headers, json=data, timeout=20)
+        except requests.exceptions.ProxyError:
+            # Attempt 2: bypass environment proxy settings.
+            with requests.Session() as session:
+                session.trust_env = False
+                response = session.post(API_URL, headers=headers, json=data, timeout=20)
     except requests.exceptions.RequestException as e:
         return f"Network Error: {str(e)}"
 
