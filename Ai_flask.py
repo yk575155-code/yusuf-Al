@@ -1,12 +1,45 @@
 import os
 import requests
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 
 app = Flask(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Strong System Prompt
+SYSTEM_PROMPT = """
+You are Yusuf Master Chatbot.
+
+You can help with:
+1. School questions
+2. Shop products and prices
+3. Friendly chatting
+4. Study help
+5. Coding help
+6. Business support
+7. Personal assistant tasks
+
+Always reply clearly, politely, and simply.
+If user asks coding, act like coding expert.
+If user asks school, act like teacher.
+If user asks shopping, act like support agent.
+"""
+
+# Custom Data
+MY_DATA = """
+School timing: 8 AM to 2 PM
+Principal: Mr Khan
+Fees: ₹500
+
+Shop open: 10 AM to 9 PM
+Delivery: 2 days
+Return policy: 7 days
+
+Business email: support@example.com
+Location: Virar
+"""
 
 
 @app.route('/')
@@ -19,11 +52,21 @@ def Ai():
     ai_response = get_ai_response(user_message)  # call Groq API
     return render_template('Ai.html', user_message=user_message, ai_response=ai_response)
 
+@app.route("/chat", methods=["POST"])
+def chat():
+    try:
+        data = request.json
+        if not data or "message" not in data:
+            return jsonify({"error": "No message provided"}), 400
+        
+        msg = data["message"]
+        reply = get_ai_response(msg)
+        return jsonify({"reply": reply})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-
-# System prompt to define the chatbot's personality and knowledge
-SYSTEM_PROMPT = "You are a helpful and intelligent AI assistant named Yusuf AI. You provide clear, accurate, and friendly responses."
 
 def get_ai_response(user_message):
     api_key = os.getenv("GROQ_API_KEY", "").strip()
@@ -39,6 +82,7 @@ def get_ai_response(user_message):
         "model": "llama-3.1-8b-instant",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": "Use this data:\n" + MY_DATA},
             {"role": "user", "content": user_message}
         ]
     }
