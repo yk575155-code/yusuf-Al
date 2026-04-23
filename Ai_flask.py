@@ -1,30 +1,29 @@
 import os
 import requests
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 from dotenv import load_dotenv
 
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "yusuf_ai_secret_123") # Secret key for sessions
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Strong System Prompt
 SYSTEM_PROMPT = """
-You are Yusuf Master Chatbot.
+You are Yusuf Master Chatbot, an advanced AI like ChatGPT.
 
 You can help with:
-1. School questions
-2. Shop products and prices
+1. School questions (act like a teacher)
+2. Shop products and prices (act like a support agent)
 3. Friendly chatting
 4. Study help
-5. Coding help
+5. Coding help (act like a coding expert)
 6. Business support
 7. Personal assistant tasks
 
-Always reply clearly, politely, and simply.
-If user asks coding, act like coding expert.
-If user asks school, act like teacher.
-If user asks shopping, act like support agent.
+Always reply clearly, politely, and simply. Use Markdown for formatting (bold, lists, code blocks).
+You remember the conversation history to provide better answers.
 """
 
 # Custom Data
@@ -44,13 +43,29 @@ Location: Virar
 
 @app.route('/')
 def index():
-    return render_template('Ai.html')
+    if 'history' not in session:
+        session['history'] = []
+    return render_template('Ai.html', history=session['history'])
 
 @app.route('/Ai', methods=['POST'])
 def Ai():
     user_message = request.form['message']
-    ai_response = get_ai_response(user_message)  # call Groq API
-    return render_template('Ai.html', user_message=user_message, ai_response=ai_response)
+    
+    # Initialize history if not present
+    if 'history' not in session:
+        session['history'] = []
+    
+    # Get response with context
+    ai_response = get_ai_response(user_message, session['history'])
+    
+    # Update session history
+    history = session['history']
+    history.append({"role": "user", "content": user_message})
+    history.append({"role": "assistant", "content": ai_response})
+    session['history'] = history
+    session.modified = True
+    
+    return render_template('Ai.html', history=session['history'])
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -60,15 +75,22 @@ def chat():
             return jsonify({"error": "No message provided"}), 400
         
         msg = data["message"]
-        reply = get_ai_response(msg)
+        # For API, we can either use session or pass history in request
+        history = data.get("history", [])
+        reply = get_ai_response(msg, history)
         return jsonify({"reply": reply})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/reset", methods=["POST"])
+def reset():
+    session.pop('history', None)
+    return jsonify({"status": "success"})
+
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
-def get_ai_response(user_message):
+def get_ai_response(user_message, history):
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
         return "Error: GROQ_API_KEY is missing. Please check your .env file."
@@ -78,13 +100,22 @@ def get_ai_response(user_message):
         "Authorization": f"Bearer {api_key}"
     }
 
+    # Build the messages list with history
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": "Use this data for factual questions:\n" + MY_DATA}
+    ]
+    
+    # Add previous history (limit to last 10 messages to save tokens)
+    for msg in history[-10:]:
+        messages.append(msg)
+    
+    # Add current user message
+    messages.append({"role": "user", "content": user_message})
+
     data = {
         "model": "llama-3.1-8b-instant",
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "system", "content": "Use this data:\n" + MY_DATA},
-            {"role": "user", "content": user_message}
-        ]
+        "messages": messages
     }
 
     try:
