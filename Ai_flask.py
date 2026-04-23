@@ -22,6 +22,9 @@ def Ai():
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
+# System prompt to define the chatbot's personality and knowledge
+SYSTEM_PROMPT = "You are a helpful and intelligent AI assistant named Yusuf AI. You provide clear, accurate, and friendly responses."
+
 def get_ai_response(user_message):
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
@@ -35,6 +38,7 @@ def get_ai_response(user_message):
     data = {
         "model": "llama-3.1-8b-instant",
         "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message}
         ]
     }
