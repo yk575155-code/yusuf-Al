@@ -6,6 +6,7 @@
     <title>AI Bot</title>
     <link rel="icon" href="{{ url_for('static', filename='1.ico') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='Ai.css') }}" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   </head>
 
   <body>
@@ -41,7 +42,7 @@
           <div class="{{ 'user-chat' if chat.role == 'user' else 'ai-chat' }}">
             <div class="bubble {{ 'user' if chat.role == 'user' else 'bot' }}">
               <strong>{{ 'You' if chat.role == 'user' else 'AI Bot' }}:</strong>
-              <span>{{ chat.content }}</span>
+              <div class="message-content">{{ chat.content }}</div>
             </div>
           </div>
           {% endfor %} {% else %}
@@ -88,8 +89,15 @@
           container.scrollTop = container.scrollHeight;
         }
       }
+      function renderMarkdown() {
+        document.querySelectorAll(".message-content").forEach((el) => {
+          const rawText = el.innerText;
+          el.innerHTML = marked.parse(rawText);
+        });
+      }
       document.addEventListener("DOMContentLoaded", () => {
         applySavedTheme();
+        renderMarkdown();
         scrollToBottom();
       });
     </script>

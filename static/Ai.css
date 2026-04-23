@@ -143,6 +143,43 @@ body {
   border: 1px solid transparent;
 }
 
+.message-content p {
+  margin-bottom: 8px;
+}
+
+.message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message-content ul, .message-content ol {
+  margin-left: 20px;
+  margin-bottom: 8px;
+}
+
+.message-content pre {
+  background: #1e293b;
+  color: #f8fafc;
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.message-content code {
+  font-family: monospace;
+  background: rgba(0,0,0,0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.bot .message-content code {
+  background: rgba(0,0,0,0.05);
+}
+
+.user .message-content code {
+  background: rgba(255,255,255,0.2);
+}
+
 .user {
   align-self: flex-end;
   background: #4f46e5;
