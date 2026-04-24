@@ -209,31 +209,40 @@
               const lines = chunk.split("\n");
 
               for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                  const dataStr = line.substring(6).trim();
-                  if (dataStr === "[DONE]") break;
-
-                  try {
-                    const data = JSON.parse(dataStr);
-                    if (data.chunk) {
-                      fullResponse += data.chunk;
-                      contentDiv.textContent = fullResponse;
-                      // Don't render markdown while streaming for better performance
-                      // but scroll to keep up with text
-                      scrollToBottom();
-                    }
-                  } catch (err) {
-                    continue;
+                const trimmedLine = line.trim();
+                if (!trimmedLine || !trimmedLine.startsWith("data: ")) continue;
+                
+                const dataStr = trimmedLine.substring(6).trim();
+                if (dataStr === "[DONE]") break;
+                
+                try {
+                  const data = JSON.parse(dataStr);
+                  if (data.chunk) {
+                    fullResponse += data.chunk;
+                    contentDiv.textContent = fullResponse;
+                    scrollToBottom();
+                  } else if (data.error) {
+                    fullResponse = "Error: " + data.error;
+                    contentDiv.textContent = fullResponse;
                   }
+                } catch (err) {
+                  console.error("JSON parse error", err, dataStr);
                 }
               }
             }
 
-            // 5. Finalize: Render Markdown and update sidebar
+            // 5. Finalize: Render Markdown, update sidebar, and save to session
             contentDiv.classList.remove("streaming");
             renderMarkdown();
             scrollToBottom();
             updateSidebar("bot", fullResponse);
+
+            // Save the conversation to session history
+            fetch("/save_chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ message: message, reply: fullResponse })
+            });
           } catch (err) {
             console.error(err);
             if (typingBubble) {

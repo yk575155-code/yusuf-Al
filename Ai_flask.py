@@ -75,22 +75,41 @@ def chat():
         if 'history' not in session:
             session['history'] = []
 
+        # We must copy history to use inside the generator to avoid session context issues
+        current_history = list(session['history'])
+
         def generate():
             full_response = ""
-            # Call Groq with streaming enabled
-            for chunk in get_ai_response_stream(msg, session['history']):
-                full_response += chunk
-                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+            try:
+                # Call Groq with streaming enabled
+                for chunk in get_ai_response_stream(msg, current_history):
+                    full_response += chunk
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
             
-            # After stream finishes, update session history
-            history = session['history']
-            history.append({"role": "user", "content": msg})
-            history.append({"role": "assistant", "content": full_response})
-            session['history'] = history
-            session.modified = True
             yield "data: [DONE]\n\n"
 
         return Response(generate(), mimetype='text/event-stream')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/save_chat", methods=["POST"])
+def save_chat():
+    try:
+        data = request.json
+        msg = data.get("message")
+        reply = data.get("reply")
+        
+        if 'history' not in session:
+            session['history'] = []
+            
+        history = session['history']
+        history.append({"role": "user", "content": msg})
+        history.append({"role": "assistant", "content": reply})
+        session['history'] = history
+        session.modified = True
+        return jsonify({"status": "success"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -123,6 +142,10 @@ def get_ai_response_stream(user_message, history):
 
     try:
         response = requests.post(API_URL, headers=headers, json=data, timeout=20, stream=True)
+        if response.status_code != 200:
+            yield f"Error: API returned {response.status_code}"
+            return
+
         for line in response.iter_lines():
             if line:
                 line = line.decode('utf-8')
@@ -131,9 +154,10 @@ def get_ai_response_stream(user_message, history):
                         break
                     try:
                         chunk_data = json.loads(line[6:])
-                        delta = chunk_data['choices'][0]['delta']
-                        if 'content' in delta:
-                            yield delta['content']
+                        if 'choices' in chunk_data and len(chunk_data['choices']) > 0:
+                            delta = chunk_data['choices'][0].get('delta', {})
+                            if 'content' in delta:
+                                yield delta['content']
                     except (json.JSONDecodeError, KeyError):
                         continue
     except Exception as e:
