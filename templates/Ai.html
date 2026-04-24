@@ -127,9 +127,13 @@
         updateThemeUI(isDark);
       }
       function clearChat() {
-        fetch("/reset", { method: "POST" }).then(() =>
-          window.location.reload(),
-        );
+        fetch("/reset", { method: "POST" }).then(() => {
+          window.location.reload();
+          setTimeout(() => {
+            const input = document.getElementById("user-input");
+            if (input) input.focus();
+          }, 100);
+        });
       }
       function scrollToBottom() {
         const container = document.getElementById("chat-container");
@@ -161,51 +165,80 @@
         renderMarkdown();
         scrollToBottom();
 
+        const userInput = document.getElementById("user-input");
+        if (userInput) userInput.focus();
+
         const form = document.getElementById("chat-form");
-        const input = document.getElementById("user-input");
         const container = document.getElementById("chat-container");
 
         form.addEventListener("submit", async (e) => {
           e.preventDefault();
-          const message = input.value.trim();
+          const message = userInput.value.trim();
           if (!message) return;
 
           // 1. Add User Message to UI
           appendMessage("user", message);
-          input.value = "";
+          userInput.value = "";
           scrollToBottom();
 
-          // 2. Show Typing Indicator
+          // 2. Show Typing Indicator (Empty Bubble for Streaming)
           const typingId = "typing-" + Date.now();
-          appendMessage("bot", "...", typingId);
+          appendMessage("bot", "", typingId);
+          const typingBubble = document.getElementById(typingId);
+          const contentDiv = typingBubble.querySelector(".message-content");
+          contentDiv.classList.add("streaming");
           scrollToBottom();
 
           try {
-            // 3. Send to Server
+            // 3. Send to Server for Streaming
             const response = await fetch("/chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ message: message }),
             });
-            const data = await response.json();
 
-            // 4. Replace Typing Indicator with actual response
-            const typingBubble = document.getElementById(typingId);
-            if (typingBubble) {
-              const contentDiv = typingBubble.querySelector(".message-content");
-              const reply =
-                data.reply || data.error || "Error getting response.";
-              contentDiv.textContent = reply;
-              renderMarkdown();
-              scrollToBottom();
-              updateSidebar("bot", reply); // Update sidebar with actual response
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullResponse = "";
+
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+
+              const chunk = decoder.decode(value);
+              const lines = chunk.split("\n");
+
+              for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                  const dataStr = line.substring(6).trim();
+                  if (dataStr === "[DONE]") break;
+
+                  try {
+                    const data = JSON.parse(dataStr);
+                    if (data.chunk) {
+                      fullResponse += data.chunk;
+                      contentDiv.textContent = fullResponse;
+                      // Don't render markdown while streaming for better performance
+                      // but scroll to keep up with text
+                      scrollToBottom();
+                    }
+                  } catch (err) {
+                    continue;
+                  }
+                }
+              }
             }
+
+            // 5. Finalize: Render Markdown and update sidebar
+            contentDiv.classList.remove("streaming");
+            renderMarkdown();
+            scrollToBottom();
+            updateSidebar("bot", fullResponse);
           } catch (err) {
             console.error(err);
-            const typingBubble = document.getElementById(typingId);
             if (typingBubble) {
-              typingBubble.querySelector(".message-content").textContent =
-                "Network error. Please try again.";
+              contentDiv.textContent = "Network error. Please try again.";
+              contentDiv.classList.remove("streaming");
             }
           }
         });

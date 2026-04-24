@@ -1,6 +1,7 @@
 import os
 import requests
-from flask import Flask, render_template, request, jsonify, session
+import json
+from flask import Flask, render_template, request, jsonify, session, Response
 from dotenv import load_dotenv
 
 app = Flask(__name__)
@@ -71,86 +72,79 @@ def chat():
         
         msg = data["message"]
         
-        # Initialize history if not present
         if 'history' not in session:
             session['history'] = []
+
+        def generate():
+            full_response = ""
+            # Call Groq with streaming enabled
+            for chunk in get_ai_response_stream(msg, session['history']):
+                full_response += chunk
+                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
             
-        # Get response with context from session
-        reply = get_ai_response(msg, session['history'])
-        
-        # Update session history
-        history = session['history']
-        history.append({"role": "user", "content": msg})
-        history.append({"role": "assistant", "content": reply})
-        session['history'] = history
-        session.modified = True
-        
-        return jsonify({"reply": reply})
+            # After stream finishes, update session history
+            history = session['history']
+            history.append({"role": "user", "content": msg})
+            history.append({"role": "assistant", "content": full_response})
+            session['history'] = history
+            session.modified = True
+            yield "data: [DONE]\n\n"
+
+        return Response(generate(), mimetype='text/event-stream')
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/reset", methods=["POST"])
-def reset():
-    session.clear() # Clear all session data, including history
-    session.modified = True
-    return jsonify({"status": "success"})
-
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-
-def get_ai_response(user_message, history):
+def get_ai_response_stream(user_message, history):
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
-        return "Error: GROQ_API_KEY is missing. Please check your .env file."
+        yield "Error: GROQ_API_KEY is missing."
+        return
 
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
 
-    # Build the messages list with history
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "system", "content": "Use this data for factual questions:\n" + MY_DATA}
     ]
-    
-    # Add previous history (limit to last 10 messages to save tokens)
     for msg in history[-10:]:
         messages.append(msg)
-    
-    # Add current user message
     messages.append({"role": "user", "content": user_message})
 
     data = {
         "model": "llama-3.1-8b-instant",
-        "messages": messages
+        "messages": messages,
+        "stream": True
     }
 
     try:
-        # Attempt 1: use current system proxy/network settings.
-        try:
-            response = requests.post(API_URL, headers=headers, json=data, timeout=20)
-        except requests.exceptions.ProxyError:
-            # Attempt 2: bypass environment proxy settings.
-            with requests.Session() as session:
-                session.trust_env = False
-                response = session.post(API_URL, headers=headers, json=data, timeout=20)
-    except requests.exceptions.RequestException as e:
-        return f"Network Error: {str(e)}"
+        response = requests.post(API_URL, headers=headers, json=data, timeout=20, stream=True)
+        for line in response.iter_lines():
+            if line:
+                line = line.decode('utf-8')
+                if line.startswith('data: '):
+                    if line == 'data: [DONE]':
+                        break
+                    try:
+                        chunk_data = json.loads(line[6:])
+                        delta = chunk_data['choices'][0]['delta']
+                        if 'content' in delta:
+                            yield delta['content']
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+    except Exception as e:
+        yield f"Error: {str(e)}"
 
-    if response.status_code == 200:
-        try:
-            return response.json()["choices"][0]["message"]["content"]
-        except (ValueError, KeyError, IndexError, TypeError):
-            return "Error: Received an invalid response from the AI service."
-    
-    # Handle specific status codes
-    if response.status_code == 401:
-        return "Error: Invalid API Key. Please check your GROQ_API_KEY."
-    elif response.status_code == 429:
-        return "Error: Rate limit exceeded. Please try again later."
-    
-    return f"Error: API returned status code {response.status_code}"
+
+@app.route("/reset", methods=["POST"])
+def reset():
+    session.clear() # Clear all session data, including history
+    session.modified = True
+    return jsonify({"status": "success"})
 
 
 if __name__ == "__main__":
