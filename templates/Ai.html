@@ -24,16 +24,20 @@
           </button>
         </div>
 
-        {% if history %} {% for chat in history %}
-        <div class="history-item">
-          <p class="history-label">
-            {{ 'You' if chat.role == 'user' else 'AI Bot' }}
-          </p>
-          <p>{{ chat.content[:50] }}{{ '...' if chat.content|length > 50 }}</p>
+        <div id="history-list">
+          {% if history %} {% for chat in history %}
+          <div class="history-item">
+            <p class="history-label">
+              {{ 'You' if chat.role == 'user' else 'AI Bot' }}
+            </p>
+            <p>
+              {{ chat.content[:50] }}{{ '...' if chat.content|length > 50 }}
+            </p>
+          </div>
+          {% endfor %} {% else %}
+          <p class="empty-history">No chats yet. Send a message to start.</p>
+          {% endif %}
         </div>
-        {% endfor %} {% else %}
-        <p class="empty-history">No chats yet. Send a message to start.</p>
-        {% endif %}
       </aside>
 
       <main class="main chat-shell">
@@ -58,8 +62,9 @@
         </div>
 
         <div class="composer-wrap">
-          <form method="post" action="{{ url_for('Ai') }}" class="form">
+          <form id="chat-form" class="form">
             <input
+              id="user-input"
               type="text"
               class="input"
               name="message"
@@ -117,6 +122,97 @@
         applySavedTheme();
         renderMarkdown();
         scrollToBottom();
+
+        const form = document.getElementById("chat-form");
+        const input = document.getElementById("user-input");
+        const container = document.getElementById("chat-container");
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const message = input.value.trim();
+          if (!message) return;
+
+          // 1. Add User Message to UI
+          appendMessage("user", message);
+          input.value = "";
+          scrollToBottom();
+
+          // 2. Show Typing Indicator
+          const typingId = "typing-" + Date.now();
+          appendMessage("bot", "...", typingId);
+          scrollToBottom();
+
+          try {
+            // 3. Send to Server
+            const response = await fetch("/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ message: message }),
+            });
+            const data = await response.json();
+
+            // 4. Replace Typing Indicator with actual response
+            const typingBubble = document.getElementById(typingId);
+            if (typingBubble) {
+              const contentDiv = typingBubble.querySelector(".message-content");
+              const reply =
+                data.reply || data.error || "Error getting response.";
+              contentDiv.textContent = reply;
+              renderMarkdown();
+              scrollToBottom();
+              updateSidebar("bot", reply); // Update sidebar with actual response
+            }
+          } catch (err) {
+            console.error(err);
+            const typingBubble = document.getElementById(typingId);
+            if (typingBubble) {
+              typingBubble.querySelector(".message-content").textContent =
+                "Network error. Please try again.";
+            }
+          }
+        });
+
+        function appendMessage(role, content, id = null) {
+          const div = document.createElement("div");
+          div.className = role === "user" ? "user-chat" : "ai-chat";
+          if (id) div.id = id;
+
+          div.innerHTML = `
+            <div class="bubble ${role === "user" ? "user" : "bot"}">
+              <strong>${role === "user" ? "You" : "AI Bot"}:</strong>
+              <div class="message-content">${content}</div>
+            </div>
+          `;
+
+          // Remove welcome card if it exists
+          const welcome = container.querySelector(".welcome-card");
+          if (welcome) welcome.remove();
+
+          container.appendChild(div);
+
+          // Update Sidebar History
+          if (content !== "...") {
+            updateSidebar(role, content);
+          }
+        }
+
+        function updateSidebar(role, content) {
+          const historyList = document.getElementById("history-list");
+          const emptyMsg = historyList.querySelector(".empty-history");
+          if (emptyMsg) emptyMsg.remove();
+
+          const div = document.createElement("div");
+          div.className = "history-item";
+          const shortContent =
+            content.length > 50 ? content.substring(0, 50) + "..." : content;
+
+          div.innerHTML = `
+            <p class="history-label">${role === "user" ? "You" : "AI Bot"}</p>
+            <p>${shortContent}</p>
+          `;
+          historyList.appendChild(div);
+          historyList.scrollTop = historyList.scrollHeight;
+        }
       });
     </script>
   </body>

@@ -184,6 +184,19 @@ body {
   color: #1e293b;
 }
 
+/* Typing animation */
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+.ai-chat[id^="typing-"] .message-content {
+  animation: pulse 1.5s infinite;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
 .user .message-content {
   color: #ffffff;
 }

@@ -70,9 +70,21 @@ def chat():
             return jsonify({"error": "No message provided"}), 400
         
         msg = data["message"]
-        # For API, we can either use session or pass history in request
-        history = data.get("history", [])
-        reply = get_ai_response(msg, history)
+        
+        # Initialize history if not present
+        if 'history' not in session:
+            session['history'] = []
+            
+        # Get response with context from session
+        reply = get_ai_response(msg, session['history'])
+        
+        # Update session history
+        history = session['history']
+        history.append({"role": "user", "content": msg})
+        history.append({"role": "assistant", "content": reply})
+        session['history'] = history
+        session.modified = True
+        
         return jsonify({"reply": reply})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
