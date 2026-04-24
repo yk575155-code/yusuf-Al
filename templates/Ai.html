@@ -176,6 +176,8 @@
           const message = userInput.value.trim();
           if (!message) return;
 
+          console.log("Sending message:", message);
+
           // 1. Add User Message to UI
           appendMessage("user", message);
           userInput.value = "";
@@ -183,7 +185,7 @@
 
           // 2. Show Typing Indicator (Empty Bubble for Streaming)
           const typingId = "typing-" + Date.now();
-          appendMessage("bot", "", typingId);
+          appendMessage("bot", "...", typingId);
           const typingBubble = document.getElementById(typingId);
           const contentDiv = typingBubble.querySelector(".message-content");
           contentDiv.classList.add("streaming");
@@ -194,12 +196,17 @@
             const response = await fetch("/chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ message: message }),
+              body: JSON.stringify({ message: message })
             });
+
+            if (!response.ok) {
+              throw new Error(`Server returned ${response.status}`);
+            }
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullResponse = "";
+            contentDiv.textContent = ""; // Clear the "..." once we start receiving
 
             while (true) {
               const { value, done } = await reader.read();
@@ -213,7 +220,10 @@
                 if (!trimmedLine || !trimmedLine.startsWith("data: ")) continue;
                 
                 const dataStr = trimmedLine.substring(6).trim();
-                if (dataStr === "[DONE]") break;
+                if (dataStr === "[DONE]") {
+                  console.log("Stream finished");
+                  break;
+                }
                 
                 try {
                   const data = JSON.parse(dataStr);
@@ -222,6 +232,7 @@
                     contentDiv.textContent = fullResponse;
                     scrollToBottom();
                   } else if (data.error) {
+                    console.error("AI Error:", data.error);
                     fullResponse = "Error: " + data.error;
                     contentDiv.textContent = fullResponse;
                   }
@@ -231,11 +242,15 @@
               }
             }
 
+            if (!fullResponse) {
+              contentDiv.textContent = "Error: Received empty response from AI.";
+            }
+
             // 5. Finalize: Render Markdown, update sidebar, and save to session
             contentDiv.classList.remove("streaming");
             renderMarkdown();
             scrollToBottom();
-            updateSidebar("bot", fullResponse);
+            updateSidebar("bot", fullResponse || "No response.");
 
             // Save the conversation to session history
             fetch("/save_chat", {
@@ -244,9 +259,9 @@
               body: JSON.stringify({ message: message, reply: fullResponse })
             });
           } catch (err) {
-            console.error(err);
+            console.error("Fetch error:", err);
             if (typingBubble) {
-              contentDiv.textContent = "Network error. Please try again.";
+              contentDiv.textContent = "Network error: " + err.message;
               contentDiv.classList.remove("streaming");
             }
           }
