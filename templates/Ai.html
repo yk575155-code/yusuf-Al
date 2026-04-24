@@ -19,9 +19,10 @@
       <aside class="history-panel">
         <div class="panel-header">
           <h2>Recent Chat</h2>
-          <button class="theme-btn" onclick="clearChat()" type="button">
-            Clear Chat
-          </button>
+          <div class="panel-actions">
+            <button class="action-btn theme-toggle" onclick="toggleTheme()" type="button" title="Toggle Dark Mode">Theme</button>
+            <button class="action-btn clear-btn" onclick="clearChat()" type="button" title="Clear All History">Clear</button>
+          </div>
         </div>
 
         <div id="history-list">

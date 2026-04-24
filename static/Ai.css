@@ -51,15 +51,32 @@ body {
   color: #4338ca;
 }
 
-.theme-btn {
+.panel-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.action-btn {
   border: none;
-  border-radius: 8px;
-  padding: 7px 10px;
-  background: #4f46e5;
+  border-radius: 6px;
+  padding: 5px 8px;
   color: #fff;
-  font-weight: 700;
-  font-size: 0.82rem;
+  font-weight: 600;
+  font-size: 0.75rem;
   cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.action-btn:hover {
+  opacity: 0.9;
+}
+
+.theme-toggle {
+  background: #4f46e5;
+}
+
+.clear-btn {
+  background: #ef4444;
 }
 
 .history-item {
@@ -186,9 +203,15 @@ body {
 
 /* Typing animation */
 @keyframes pulse {
-  0% { opacity: 0.4; }
-  50% { opacity: 1; }
-  100% { opacity: 0.4; }
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.4;
+  }
 }
 
 .ai-chat[id^="typing-"] .message-content {
@@ -321,6 +344,10 @@ body.dark .ai-chat {
 body.dark .bot {
   background: #1e293b;
   border-color: #334155;
+  color: #e2e8f0;
+}
+
+body.dark .bot .message-content {
   color: #e2e8f0;
 }
 
