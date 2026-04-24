@@ -10,7 +10,9 @@ body {
   overflow: hidden;
   background: linear-gradient(135deg, #eef2ff, #f8fafc);
   color: #0f172a;
-  transition: background 0.25s ease, color 0.25s ease;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease;
 }
 
 .app-layout {
@@ -151,33 +153,47 @@ body {
   margin-bottom: 0;
 }
 
-.message-content ul, .message-content ol {
+.message-content ul,
+.message-content ol {
   margin-left: 20px;
   margin-bottom: 8px;
 }
 
 .message-content pre {
-  background: #1e293b;
-  color: #f8fafc;
-  padding: 10px;
-  border-radius: 8px;
+  background: #0d1117;
+  color: #c9d1d9;
+  padding: 16px;
+  border-radius: 12px;
   overflow-x: auto;
-  margin: 8px 0;
+  margin: 12px 0;
+  border: 1px solid #30363d;
+  font-family: "Fira Code", "Courier New", monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
 }
 
 .message-content code {
-  font-family: monospace;
-  background: rgba(0,0,0,0.1);
-  padding: 2px 4px;
-  border-radius: 4px;
+  font-family: "Fira Code", monospace;
+  background: rgba(110, 118, 129, 0.2);
+  padding: 0.2em 0.4em;
+  border-radius: 6px;
+  font-size: 85%;
+}
+
+.bot .message-content {
+  color: #1e293b;
+}
+
+.user .message-content {
+  color: #ffffff;
 }
 
 .bot .message-content code {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .user .message-content code {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .user {
