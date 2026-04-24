@@ -37,6 +37,51 @@ body {
   padding: 14px;
   height: 100%;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.new-chat-container {
+  margin-bottom: 20px;
+}
+
+.new-chat-btn {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+  color: #4338ca;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.new-chat-btn:hover {
+  background: #eef2ff;
+  border-color: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.new-chat-btn span {
+  font-size: 1.2rem;
+  font-weight: 400;
+}
+
+body.dark .new-chat-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #c7d2fe;
+}
+
+body.dark .new-chat-btn:hover {
+  background: #334155;
+  border-color: #4f46e5;
 }
 
 .panel-header {

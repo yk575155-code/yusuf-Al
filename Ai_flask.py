@@ -91,7 +91,8 @@ def chat():
 
 @app.route("/reset", methods=["POST"])
 def reset():
-    session.pop('history', None)
+    session.clear() # Clear all session data, including history
+    session.modified = True
     return jsonify({"status": "success"})
 
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
