@@ -73,6 +73,11 @@ body {
 
 .theme-toggle {
   background: #4f46e5;
+  min-width: 75px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .clear-btn {
