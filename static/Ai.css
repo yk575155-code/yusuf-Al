@@ -279,7 +279,7 @@ body.dark .new-chat-btn:hover {
 }
 
 .ai-chat[id^="typing-"] .message-content {
-  animation: pulse 1.5s infinite;
+  /* animation: pulse 1.5s infinite; */
   font-weight: bold;
   letter-spacing: 2px;
 }
@@ -358,14 +358,14 @@ body.dark .new-chat-btn:hover {
   animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
+/* @keyframes fadeIn {
   from {
     opacity: 0.35;
   }
   to {
     opacity: 1;
   }
-}
+} */
 
 body.dark {
   background: linear-gradient(135deg, #0f172a, #111827);
