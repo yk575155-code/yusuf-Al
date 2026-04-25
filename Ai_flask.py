@@ -45,13 +45,15 @@ def index():
 
 @app.route('/Ai', methods=['POST'])
 def Ai():
-    user_message = request.form['message']
+    user_message = request.form.get('message', '')
+    if not user_message:
+        return render_template('Ai.html', history=session.get('history', []))
     
     # Initialize history if not present
     if 'history' not in session:
         session['history'] = []
     
-    # Get response with context
+    # Get response (non-streaming for traditional form POST)
     ai_response = get_ai_response(user_message, session['history'])
     
     # Update session history
@@ -62,6 +64,40 @@ def Ai():
     session.modified = True
     
     return render_template('Ai.html', history=session['history'])
+
+def get_ai_response(user_message, history):
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if not api_key:
+        return "Error: GROQ_API_KEY is missing. Please set it in your .env file."
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": "Use this data for factual questions:\n" + MY_DATA}
+    ]
+    for msg in history[-10:]:
+        messages.append(msg)
+    messages.append({"role": "user", "content": user_message})
+
+    data = {
+        "model": "llama-3.1-8b-instant",
+        "messages": messages,
+        "stream": False
+    }
+
+    try:
+        response = requests.post(API_URL, headers=headers, json=data, timeout=20)
+        if response.status_code == 200:
+            result = response.json()
+            return result['choices'][0]['message']['content']
+        else:
+            return f"Error: API returned {response.status_code} - {response.text}"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 @app.route("/chat", methods=["POST"])
 def chat():

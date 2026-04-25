@@ -142,23 +142,44 @@
         }
       }
       function renderMarkdown() {
+        if (typeof marked === "undefined") {
+          console.error("Marked library not loaded");
+          return;
+        }
         marked.setOptions({
           highlight: function (code, lang) {
-            return hljs.highlightAuto(code).value;
+            if (typeof hljs !== "undefined") {
+              if (lang && hljs.getLanguage(lang)) {
+                return hljs.highlight(code, { language: lang }).value;
+              }
+              return hljs.highlightAuto(code).value;
+            }
+            return code;
           },
           breaks: true,
           gfm: true,
         });
 
-        document.querySelectorAll(".message-content").forEach((el) => {
-          const rawText = el.textContent; // Use textContent to preserve raw code
-          el.innerHTML = marked.parse(rawText);
-        });
+        document
+          .querySelectorAll(".message-content:not([data-rendered])")
+          .forEach((el) => {
+            const rawText = el.textContent;
+            try {
+              el.innerHTML = marked.parse(rawText);
+              el.setAttribute("data-rendered", "true");
+            } catch (e) {
+              console.error("Markdown parse error:", e);
+            }
+          });
 
         // Trigger highlight.js for any code blocks
-        document.querySelectorAll("pre code").forEach((block) => {
-          hljs.highlightElement(block);
-        });
+        if (typeof hljs !== "undefined") {
+          document.querySelectorAll("pre code").forEach((block) => {
+            if (!block.classList.contains("hljs")) {
+              hljs.highlightElement(block);
+            }
+          });
+        }
       }
       document.addEventListener("DOMContentLoaded", () => {
         applySavedTheme();
@@ -196,7 +217,7 @@
             const response = await fetch("/chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ message: message })
+              body: JSON.stringify({ message: message }),
             });
 
             if (!response.ok) {
@@ -206,28 +227,32 @@
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullResponse = "";
-            contentDiv.textContent = ""; // Clear the "..." once we start receiving
+            let buffer = ""; // Buffer for partial lines
+            contentDiv.textContent = "";
 
             while (true) {
               const { value, done } = await reader.read();
               if (done) break;
 
-              const chunk = decoder.decode(value);
-              const lines = chunk.split("\n");
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+
+              // Keep the last partial line in the buffer
+              buffer = lines.pop();
 
               for (const line of lines) {
                 const trimmedLine = line.trim();
                 if (!trimmedLine || !trimmedLine.startsWith("data: ")) continue;
-                
+
                 const dataStr = trimmedLine.substring(6).trim();
                 if (dataStr === "[DONE]") {
                   console.log("Stream finished");
                   break;
                 }
-                
+
                 try {
                   const data = JSON.parse(dataStr);
-                  if (data.chunk) {
+                  if (data.chunk !== undefined) {
                     fullResponse += data.chunk;
                     contentDiv.textContent = fullResponse;
                     scrollToBottom();
@@ -242,8 +267,26 @@
               }
             }
 
+            // Handle any remaining data in buffer
+            if (buffer) {
+              const trimmedLine = buffer.trim();
+              if (trimmedLine.startsWith("data: ")) {
+                const dataStr = trimmedLine.substring(6).trim();
+                if (dataStr !== "[DONE]") {
+                  try {
+                    const data = JSON.parse(dataStr);
+                    if (data.chunk !== undefined) {
+                      fullResponse += data.chunk;
+                      contentDiv.textContent = fullResponse;
+                    }
+                  } catch (e) {}
+                }
+              }
+            }
+
             if (!fullResponse) {
-              contentDiv.textContent = "Error: Received empty response from AI.";
+              contentDiv.textContent =
+                "Error: Received empty response from AI.";
             }
 
             // 5. Finalize: Render Markdown, update sidebar, and save to session
@@ -256,7 +299,7 @@
             fetch("/save_chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ message: message, reply: fullResponse })
+              body: JSON.stringify({ message: message, reply: fullResponse }),
             });
           } catch (err) {
             console.error("Fetch error:", err);
