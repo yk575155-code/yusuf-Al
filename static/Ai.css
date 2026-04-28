@@ -297,6 +297,40 @@ body.dark .message-content th {
   color: #a5b4fc;
 }
 
+.message-content.streaming::after {
+  content: "▊";
+  animation: blink 1s steps(2, start) infinite;
+  margin-left: 4px;
+  color: #4338ca;
+}
+
+body.dark .message-content.streaming::after {
+  color: #a5b4fc;
+}
+
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.history-item {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.history-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.dark .history-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.copy-btn {
+  opacity: 1 !important; /* Always visible for better UX */
+}
+
 .message-content pre {
   background: #0d1117;
   color: #c9d1d9;

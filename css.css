@@ -1,0 +1,131 @@
+/* .glassmorphic-navbar {
+    display: flex;
+    align-items: center;
+    padding: 1rem 2rem;
+    position: relative;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    width: 100%;
+} */
+/* 
+.glassmorphic-navbar label {
+    display: none;
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    cursor: pointer;
+} */
+
+.toggle-btn {
+    width: 30px;
+    height: 4px;
+    background: #fff;
+    border-radius: 10px;
+    display: inline-block;
+    margin-bottom: 10px;
+    transition: all 0.3s ease-in-out;
+}
+
+.toggle-btn:last-child {
+    margin-bottom: 0;
+}
+
+.navbar-toggle-label {
+    position: relative;
+}
+
+.navbar-toggle-label label {
+    display: block;
+    z-index: 1;
+}
+
+.navbar-toggle-label label:hover ~ .toggle-btn {
+    background: #ff9900;
+}
+
+.navbar-toggle-label label:after,
+.navbar-toggle-label label .toggle-btn {
+    position: relative;
+    display: block;
+    width: 30px;
+    height: inherit;
+    content: "";
+}
+
+.navbar-toggle-label label .toggle-btn {
+    transform: rotate(0deg);
+}
+
+.navbar-toggle-label label {
+    cursor: pointer;
+}
+
+.Navbar-toggle-label label:hover .toggle-btn {
+    background: #ff9900;
+}
+
+.navbar-toggle-label label:after {
+    content: "";
+    position: absolute;
+    background-color: #ff9900;
+    margin-top: -5px;
+}
+
+.navbar-links {
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.navbar-links li {
+    list-style: none;
+    margin-left: 20px;
+}
+
+.navbar-links li a {
+    text-decoration: none;
+    color: #fff;
+    transition: color 0.3s ease-in-out;
+}
+
+.navbar-links li a:hover {
+    color: #ff9900;
+}
+
+@media screen and (max-width: 768px) {
+    .glassmorphic-navbar {
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        padding: 1rem;
+        text-align: center;
+    }
+    .navbar-links {
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        border: none;
+        padding: 1rem;
+        width: 100%;
+        display: none;
+    }
+    .navbar-links li {
+        margin-left: 0;
+    }
+    .navbar-links li a {
+        padding: 0.5rem;
+        display: block;
+    }
+    input[type="checkbox"]:checked ~ .navbar-links {
+        display: block;
+    }
+}

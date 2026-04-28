@@ -120,12 +120,40 @@
               required
             />
             <button id="btn" type="submit">Send</button>
+            <button
+              id="stop-btn"
+              type="button"
+              style="display: none; background: #ef4444"
+              onclick="stopGeneration()"
+            >
+              Stop
+            </button>
           </form>
         </div>
       </main>
     </div>
 
     <script>
+      let currentController = null;
+
+      function stopGeneration() {
+        if (currentController) {
+          currentController.abort();
+          currentController = null;
+          document.getElementById("stop-btn").style.display = "none";
+          document.getElementById("btn").style.display = "block";
+
+          const streamingDiv = document.querySelector(
+            ".message-content.streaming",
+          );
+          if (streamingDiv) {
+            streamingDiv.classList.remove("streaming");
+            streamingDiv.innerHTML += " <em>(Stopped by user)</em>";
+            renderMarkdown();
+          }
+        }
+      }
+
       function updateThemeUI(isDark) {
         const icon = document.getElementById("theme-icon");
         const text = document.getElementById("theme-text");
@@ -243,116 +271,88 @@
           const message = userInput.value.trim();
           if (!message) return;
 
-          console.log("Sending message:", message);
-
-          // 1. Add User Message to UI
+          // 1. UI Setup
           appendMessage("user", message);
           userInput.value = "";
+          document.getElementById("btn").style.display = "none";
+          document.getElementById("stop-btn").style.display = "block";
           scrollToBottom();
 
-          // 2. Show Typing Indicator (Empty Bubble for Streaming)
           const typingId = "typing-" + Date.now();
-          appendMessage("bot", "...", typingId);
+          appendMessage("bot", "", typingId);
           const typingBubble = document.getElementById(typingId);
           const contentDiv = typingBubble.querySelector(".message-content");
           contentDiv.classList.add("streaming");
-          scrollToBottom();
+
+          // 2. AbortController for Stopping Generation
+          currentController = new AbortController();
 
           try {
-            // 3. Send to Server for Streaming
             const response = await fetch("/chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ message: message }),
+              signal: currentController.signal,
             });
 
-            if (!response.ok) {
-              throw new Error(`Server returned ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`Server: ${response.status}`);
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullResponse = "";
-            let buffer = ""; // Buffer for partial lines
-            contentDiv.textContent = "";
+            let buffer = "";
 
             while (true) {
               const { value, done } = await reader.read();
               if (done) break;
 
               buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split("\n");
-
-              // Keep the last partial line in the buffer
+              const lines = buffer.split("\n\n");
               buffer = lines.pop();
 
               for (const line of lines) {
-                const trimmedLine = line.trim();
-                if (!trimmedLine || !trimmedLine.startsWith("data: ")) continue;
-
-                const dataStr = trimmedLine.substring(6).trim();
-                if (dataStr === "[DONE]") {
-                  console.log("Stream finished");
-                  break;
-                }
+                if (!line.startsWith("data: ")) continue;
+                const dataStr = line.substring(6).trim();
+                if (dataStr === "[DONE]") break;
 
                 try {
                   const data = JSON.parse(dataStr);
-                  if (data.chunk !== undefined) {
+                  if (data.chunk) {
                     fullResponse += data.chunk;
                     contentDiv.textContent = fullResponse;
                     scrollToBottom();
                   } else if (data.error) {
-                    console.error("AI Error:", data.error);
-                    fullResponse = "Error: " + data.error;
-                    contentDiv.textContent = fullResponse;
+                    throw new Error(data.error);
                   }
-                } catch (err) {
-                  console.error("JSON parse error", err, dataStr);
+                } catch (e) {
+                  console.warn("JSON error", e);
                 }
               }
             }
 
-            // Handle any remaining data in buffer
-            if (buffer) {
-              const trimmedLine = buffer.trim();
-              if (trimmedLine.startsWith("data: ")) {
-                const dataStr = trimmedLine.substring(6).trim();
-                if (dataStr !== "[DONE]") {
-                  try {
-                    const data = JSON.parse(dataStr);
-                    if (data.chunk !== undefined) {
-                      fullResponse += data.chunk;
-                      contentDiv.textContent = fullResponse;
-                    }
-                  } catch (e) {}
-                }
-              }
-            }
-
-            if (!fullResponse) {
-              contentDiv.textContent =
-                "Error: Received empty response from AI.";
-            }
-
-            // 5. Finalize: Render Markdown, update sidebar, and save to session
+            // Cleanup & Save
             contentDiv.classList.remove("streaming");
             renderMarkdown();
             scrollToBottom();
             updateSidebar("bot", fullResponse || "No response.");
 
-            // Save the conversation to session history
             fetch("/save_chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ message: message, reply: fullResponse }),
             });
           } catch (err) {
-            console.error("Fetch error:", err);
-            if (typingBubble) {
-              contentDiv.textContent = "Network error: " + err.message;
-              contentDiv.classList.remove("streaming");
+            if (err.name === "AbortError") {
+              console.log("Stream aborted");
+            } else {
+              contentDiv.textContent = "Error: " + err.message;
+              contentDiv.style.color = "#ef4444";
             }
+          } finally {
+            currentController = null;
+            document.getElementById("btn").style.display = "block";
+            document.getElementById("stop-btn").style.display = "none";
+            contentDiv.classList.remove("streaming");
           }
         });
 
