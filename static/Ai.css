@@ -508,6 +508,36 @@ body.dark .suggestion-chip {
   filter: brightness(1.05);
 }
 
+#clear-btn {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#clear-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+body.dark #clear-btn {
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+body.dark #clear-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
 .typing {
   display: inline-block;
   white-space: pre-wrap;
