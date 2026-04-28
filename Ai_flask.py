@@ -55,12 +55,25 @@ def get_ai_response_stream(user_message, history, max_retries=3):
         "Authorization": f"Bearer {api_key}"
     }
 
+    # 1. Payload Optimization: Truncate history to stay within API limits
+    # Max payload for Groq is usually 4MB, but token limits are more restrictive.
+    # We'll limit history to last 8 messages and cap each message length.
+    optimized_history = []
+    for msg in history[-8:]:
+        content = msg.get("content", "")
+        if len(content) > 2000: # Truncate very long messages
+            content = content[:2000] + "... [Truncated for payload optimization]"
+        optimized_history.append({"role": msg["role"], "content": content})
+
+    # Truncate current message if it's massive
+    if len(user_message) > 4000:
+        user_message = user_message[:4000] + "... [Truncated for payload optimization]"
+
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "system", "content": "Use this data for factual questions:\n" + MY_DATA}
     ]
-    for msg in history[-10:]:
-        messages.append(msg)
+    messages.extend(optimized_history)
     messages.append({"role": "user", "content": user_message})
 
     data = {
