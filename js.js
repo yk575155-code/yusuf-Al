@@ -1,12 +1,9 @@
-document.addEventListener("DOMContentLoaded", function () {
-    let navbarToggle = document.querySelector('#navbar-toggle');
-    
-    navbarToggle.addEventListener('click', function () {
-        let navbarLinks = document.querySelector('.navbar-links');
-        if (navbarToggle.checked) {
-            navbarLinks.style.display = 'block';
-        } else{
-            navbarLinks.style.display = 'none';
-        }
-    });
+// script.js
+
+const toggleButton = document.querySelector('.toggle-button');
+const menu = document.querySelector('.menu');
+
+toggleButton.addEventListener('click', () => {
+    menu.classList.toggle('active');
+    toggleButton.classList.toggle('active');
 });

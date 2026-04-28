@@ -111,14 +111,14 @@
             </div>
           </div>
           <form id="chat-form" class="form">
-            <input
+            <textarea
               id="user-input"
-              type="text"
               class="input"
               name="message"
               placeholder="Type your message..."
+              rows="1"
               required
-            />
+            ></textarea>
             <button id="btn" type="submit">Send</button>
             <button
               id="stop-btn"
@@ -261,7 +261,23 @@
         scrollToBottom();
 
         const userInput = document.getElementById("user-input");
-        if (userInput) userInput.focus();
+        if (userInput) {
+          userInput.focus();
+
+          // Auto-expand textarea
+          userInput.addEventListener("input", function () {
+            this.style.height = "auto";
+            this.style.height = this.scrollHeight + "px";
+          });
+
+          // Handle Enter (Send) and Shift+Enter (New Line)
+          userInput.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              form.dispatchEvent(new Event("submit"));
+            }
+          });
+        }
 
         const form = document.getElementById("chat-form");
         const container = document.getElementById("chat-container");
@@ -274,6 +290,7 @@
           // 1. UI Setup
           appendMessage("user", message);
           userInput.value = "";
+          userInput.style.height = "auto"; // Reset height after send
           document.getElementById("btn").style.display = "none";
           document.getElementById("stop-btn").style.display = "block";
           scrollToBottom();
