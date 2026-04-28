@@ -84,6 +84,32 @@
         </div>
 
         <div class="composer-wrap">
+          <div class="smart-suggestions" id="suggestions">
+            <div
+              class="suggestion-chip"
+              onclick="useSuggestion('Summarize this')"
+            >
+              📝 Summarize
+            </div>
+            <div
+              class="suggestion-chip"
+              onclick="useSuggestion('Explain more')"
+            >
+              💡 Explain more
+            </div>
+            <div
+              class="suggestion-chip"
+              onclick="useSuggestion('Make it shorter')"
+            >
+              ✂️ Shorter
+            </div>
+            <div
+              class="suggestion-chip"
+              onclick="useSuggestion('Check for errors')"
+            >
+              🔍 Check errors
+            </div>
+          </div>
           <form id="chat-form" class="form">
             <input
               id="user-input"
@@ -167,6 +193,20 @@
             try {
               el.innerHTML = marked.parse(rawText);
               el.setAttribute("data-rendered", "true");
+
+              // Add copy buttons to code blocks
+              el.querySelectorAll("pre").forEach((pre) => {
+                const btn = document.createElement("button");
+                btn.className = "copy-btn";
+                btn.textContent = "Copy";
+                btn.onclick = () => {
+                  const code = pre.querySelector("code").innerText;
+                  navigator.clipboard.writeText(code);
+                  btn.textContent = "Copied!";
+                  setTimeout(() => (btn.textContent = "Copy"), 2000);
+                };
+                pre.appendChild(btn);
+              });
             } catch (e) {
               console.error("Markdown parse error:", e);
             }
@@ -180,6 +220,12 @@
             }
           });
         }
+      }
+
+      function useSuggestion(text) {
+        const input = document.getElementById("user-input");
+        input.value = text;
+        document.getElementById("chat-form").dispatchEvent(new Event("submit"));
       }
       document.addEventListener("DOMContentLoaded", () => {
         applySavedTheme();
